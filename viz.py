@@ -144,7 +144,7 @@ def plot_gantt(tasks, df_traces, fig_size=None):
         
         # Add events
         H = compute_H(tasks)
-        size = df_traces.shape[0]
+        size = df_traces['dt'].sum()
         plot_task_events_gantt(i, tasks[i], H, size=size)
         plot_task_events_gantt(i, tasks[i], H, for_deadlines=True, size=size)
 
