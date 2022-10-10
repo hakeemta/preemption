@@ -7,7 +7,8 @@ import plotly.graph_objects as go
 
 from utils import *
 
-COLORS = px.colors.qualitative.Alphabet
+COLORS = px.colors.qualitative.Plotly 
+COLORS += ['#DDDDDD']
 PERIOD = 360
 
 
@@ -40,7 +41,7 @@ def plot_trace(_id, df_traces, H):
 
     theta_per_tick = PERIOD / H
     width = theta_per_tick * df_trace['dt']
-    r = 80 - 5 * (trace // H)
+    r = 80 - 10 * (trace // H)
     theta = (trace + 0.5 * df_trace['dt']) % H * theta_per_tick
 
     bar = go.Barpolar(r=r, base=0, theta=theta, width=width, name=f'Task {_id + 1}',
@@ -73,7 +74,8 @@ def plot_polar(tasks, df_traces, size=800):
     arrow_len = size / 3
     fig_polar.add_annotation(x=1.1, y=0.5, 
                             ax=-arrow_len, ay=0.5,
-                            axref='x', ayref='y', 
+                            # axref='x domain', ayref='y domain', 
+                            # xref='x domain', yref='y domain', 
                             showarrow=True, arrowhead=2, arrowwidth=2)
 
     # fig_polar.add_annotation(x=10, y=(20 + 0.75), ax=10, ay=(20 - 0.1), 
