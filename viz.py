@@ -23,11 +23,11 @@ def plot_events(i, ticks, theta_per_tick, r=60, symbol=None, size=20):
 def plot_task_events(i, task, H, for_deadlines=False):
     theta_per_tick = PERIOD / H
     symbol = 'star-diamond'
-    r = 60
+    r = 90
     
     if for_deadlines:
         symbol = 'circle'
-        r = 50
+        r = 80
 
     ticks = get_ticks(task, H, for_deadlines=for_deadlines)
     scatter = plot_events(i, ticks, theta_per_tick, r, symbol)
@@ -40,8 +40,8 @@ def plot_trace(_id, df_traces, H):
 
     theta_per_tick = PERIOD / H
     width = theta_per_tick * df_trace['dt']
-    r = 50 - 5 * (trace // H)
-    theta = (trace + 0.5 * df_trace['dt']) * theta_per_tick
+    r = 80 - 5 * (trace // H)
+    theta = (trace + 0.5 * df_trace['dt']) % H * theta_per_tick
 
     bar = go.Barpolar(r=r, base=0, theta=theta, width=width, name=f'Task {_id + 1}',
                     marker=dict(color=COLORS[_id], line_width=1, line_color='black'), 
@@ -63,18 +63,28 @@ def plot_polar(tasks, df_traces, size=800):
         fig_polar.add_trace(scatter_deadlines)
 
         bar = plot_trace(i, df_traces, H)
-        fig_polar.add_trace(bar)    
+        fig_polar.add_trace(bar)
 
     # Add cost trace
     bar = plot_trace(-1, df_traces, H)
     bar.showlegend = False
     fig_polar.add_trace(bar)
 
+    arrow_len = size / 3
+    fig_polar.add_annotation(x=1.1, y=0.5, 
+                            ax=-arrow_len, ay=0.5,
+                            axref='x', ayref='y', 
+                            showarrow=True, arrowhead=2, arrowwidth=2)
+
+    # fig_polar.add_annotation(x=10, y=(20 + 0.75), ax=10, ay=(20 - 0.1), 
+    #                         axref='x', ayref='y',
+    #                         showarrow=True, arrowhead=2, arrowwidth=2, arrowcolor=COLORS[i])
+
     fig_polar.update_layout(template=None, autosize=False, width=size, height=size,
                             polar=dict(angularaxis=dict(ticks='outside',
                                                 # type='category', period=H,
                                                 tickmode='array', tickvals=ticks * (360 / H), ticktext=ticks),
-                                        radialaxis = dict(showticklabels=False, ticks='') ) )
+                                        radialaxis = dict(range=[0, 100], showticklabels=False, ticks='') ) )
 
     fig_polar.show()
 
