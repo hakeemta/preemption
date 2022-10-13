@@ -12,8 +12,7 @@ COLORS += ['#DDDDDD']
 PERIOD = 360
   
 
-def plot_trace(_id, df_traces, H):
-    df_trace = df_traces[ df_traces['id'] == str(_id + 1) ]
+def plot_trace(_id, df_trace, H):
     trace = df_trace.start
 
     theta_per_tick = PERIOD / H
@@ -23,7 +22,7 @@ def plot_trace(_id, df_traces, H):
 
     bar = go.Barpolar(r=r, base=0, theta=theta, width=width, name=f'Task {_id + 1}',
                     marker=dict(color=COLORS[_id], line_width=2, line_color='black'), 
-                    opacity=0.8)
+                    showlegend=False, opacity=1.0)
 
     return bar
 
@@ -35,22 +34,15 @@ def plot_polar(tasks, df_traces, size=800):
     ticks = np.arange(H)
     theta_per_tick = PERIOD / H
 
-    def plot_task_events(i, task, for_deadlines=False):
-        symbol = 'star-diamond'
-        r = 100
-        
-        if for_deadlines:
-            symbol = 'circle'
-            r = 100
-
-        ticks = get_ticks(task, H, for_deadlines=for_deadlines)
-        r = [r] * ticks.size
+    def plot_events_deadlines(i, task):
+        ticks = get_ticks(task, H, for_deadlines=True)
+        r = [100] * ticks.size
         theta = ticks * theta_per_tick
-        scatter = go.Scatterpolar(r=r, theta=theta, mode='markers', showlegend=False,
-                                marker=dict(color=COLORS[i], symbol=symbol, size=20) )
+        scatter = go.Scatterpolar(r=r, theta=theta, mode='markers', showlegend=True, name=f'Task {i + 1}',
+                                marker=dict(color=COLORS[i], symbol='circle', size=(size / 50)) )
         return scatter
 
-    def plot_events(i, task):
+    def plot_events_releases(i, task):
         arrow_len = size / 2.25
         ticks = get_ticks(task, H)
         theta = ticks * theta_per_tick * (2 * np.pi / 360.0)
@@ -58,31 +50,34 @@ def plot_polar(tasks, df_traces, size=800):
         axs = arrow_len * np.cos(theta)
         ays = arrow_len * np.sin(theta)
         for ax, ay in zip(axs, ays):
-            fig_polar.add_annotation(x=0.5, y=0.5, 
-                                    ax=ax, ay=ay,
+            fig_polar.add_annotation(x=0.5, y=0.5, ax=ax, ay=ay,
                                     arrowside='start', arrowcolor=COLORS[i],
                                     arrowhead=2, arrowwidth=2)
 
     for i, task in enumerate(tasks):
-        # scatter_releases = plot_task_events(i, task)
-        # fig_polar.add_trace(scatter_releases)
-        plot_events(i, task)
+        plot_events_releases(i, task)
 
-        scatter_deadlines = plot_task_events(i, task, for_deadlines=True)
+        scatter_deadlines = plot_events_deadlines(i, task)
         fig_polar.add_trace(scatter_deadlines)
 
-        bar = plot_trace(i, df_traces, H)
+    # df_traces_actual = df_traces[df_traces['id'] != '0']
+    for t in range(df_traces.shape[0]):
+        # df_trace = df_traces[ df_traces['id'] == str(_id + 1) ]
+        df_trace = df_traces.iloc[t:t+1]
+        _id = int(df_trace['id'].values[0]) - 1
+
+        bar = plot_trace(_id, df_trace, H)
         fig_polar.add_trace(bar)
 
     # Add cost trace
-    bar = plot_trace(-1, df_traces, H)
-    bar.showlegend = False
-    fig_polar.add_trace(bar)
+    # bar = plot_trace(-1, df_traces, H)
+    # bar.showlegend = False
+    # fig_polar.add_trace(bar)
 
     fig_polar.update_layout(template=None, autosize=False, width=size, height=size,
-                            polar=dict(angularaxis=dict(ticks='outside',
-                                                # type='category', period=H,
-                                                tickmode='array', tickvals=ticks * (360 / H), ticktext=ticks),
+                            polar=dict(angularaxis=dict(ticks='', ticktext=ticks,
+                                                        # type='category', period=H,
+                                                        tickmode='array', tickvals=ticks * (360 / H)),
                                         radialaxis = dict(range=[0, 100], showticklabels=False, ticks='') ) )
 
     fig_polar.show()

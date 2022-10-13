@@ -24,8 +24,8 @@ def read_traces(filename):
     traces = []
 
     with open(filename) as fp:
-        traces = fp.readline()
-        traces = traces.split()
+        for line in fp.readlines():
+            traces += line.split()
 
     traces = np.array(traces, dtype=int)
     return traces
