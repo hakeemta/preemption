@@ -1,4 +1,4 @@
-from turtle import width
+import time
 import numpy as np
 import pandas as pd
 
@@ -7,12 +7,19 @@ import plotly.graph_objects as go
 
 from utils import *
 
-COLORS = px.colors.qualitative.Plotly 
-COLORS += ['#DDDDDD']
+COLORS = px.colors.qualitative.Plotly + ['#DDDDDD']
 PERIOD = 360
   
 
-def plot_trace(_id, df_trace, H):
+def plot_trace(df_trace, H):
+    _id = int(df_trace['id'].values[0])
+    if _id == 0:
+        color = 'white'
+    elif _id < 0:
+        color = COLORS[-1]
+    else:
+        color = COLORS[_id]
+
     trace = df_trace.start
 
     theta_per_tick = PERIOD / H
@@ -20,8 +27,8 @@ def plot_trace(_id, df_trace, H):
     r = 100 - 10 * (trace // H)
     theta = (trace + 0.5 * df_trace['dt']) % H * theta_per_tick
 
-    bar = go.Barpolar(r=r, base=0, theta=theta, width=width, name=f'Task {_id + 1}',
-                    marker=dict(color=COLORS[_id], line_width=2, line_color='black'), 
+    bar = go.Barpolar(r=r, base=0, theta=theta, width=width,
+                    marker=dict(color=color, line_width=2, line_color='black'), 
                     showlegend=False, opacity=1.0)
 
     return bar
@@ -60,19 +67,11 @@ def plot_polar(tasks, df_traces, size=800):
         scatter_deadlines = plot_events_deadlines(i, task)
         fig_polar.add_trace(scatter_deadlines)
 
-    # df_traces_actual = df_traces[df_traces['id'] != '0']
     for t in range(df_traces.shape[0]):
-        # df_trace = df_traces[ df_traces['id'] == str(_id + 1) ]
         df_trace = df_traces.iloc[t:t+1]
-        _id = int(df_trace['id'].values[0]) - 1
-
-        bar = plot_trace(_id, df_trace, H)
+        
+        bar = plot_trace(df_trace, H)
         fig_polar.add_trace(bar)
-
-    # Add cost trace
-    # bar = plot_trace(-1, df_traces, H)
-    # bar.showlegend = False
-    # fig_polar.add_trace(bar)
 
     fig_polar.update_layout(template=None, autosize=False, width=size, height=size,
                             polar=dict(angularaxis=dict(ticks='', ticktext=ticks,
@@ -93,14 +92,14 @@ def process_traces(traces):
     df_traces['start'] = df_traces['end'] - df_traces['dt']
 
     df_traces['task'] = df_traces['id'].abs()
-    df_traces = df_traces[df_traces['id'] != 0]
-    df_traces.loc[ df_traces['id'] < 0, 'id'] = 0
-    df_traces[['id']] = df_traces[['id']].astype(str)
-
     return df_traces
 
 
 def plot_gantt(tasks, df_traces, fig_size=None):
+    df_traces = df_traces[df_traces['id'] != 0]
+    df_traces.loc[ df_traces['id'] < 0, 'id'] = 0
+    df_traces['id'] = df_traces[['id']].astype(str)
+
     fig_gantt = px.timeline(df_traces, x_start='start', x_end='end', y='task', 
                         color='id', color_discrete_sequence=COLORS, opacity=0.8)
     fig_gantt.update_traces(marker=dict(line_color='black', line_width=1.0))
