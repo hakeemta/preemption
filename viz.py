@@ -10,30 +10,7 @@ from utils import *
 COLORS = px.colors.qualitative.Plotly 
 COLORS += ['#DDDDDD']
 PERIOD = 360
-
-
-def plot_events(i, ticks, theta_per_tick, r=60, symbol=None, size=20):
-    r = [r] * ticks.size
-    theta = ticks * theta_per_tick
-    scatter = go.Scatterpolar(r=r, theta=theta, mode='markers', showlegend=False,
-                            marker=dict(color=COLORS[i], symbol=symbol, size=20) )
-
-    return scatter
-
-
-def plot_task_events(i, task, H, for_deadlines=False):
-    theta_per_tick = PERIOD / H
-    symbol = 'star-diamond'
-    r = 90
-    
-    if for_deadlines:
-        symbol = 'circle'
-        r = 80
-
-    ticks = get_ticks(task, H, for_deadlines=for_deadlines)
-    scatter = plot_events(i, ticks, theta_per_tick, r, symbol)
-    return scatter
-
+  
 
 def plot_trace(_id, df_traces, H):
     df_trace = df_traces[ df_traces['id'] == str(_id + 1) ]
@@ -41,11 +18,11 @@ def plot_trace(_id, df_traces, H):
 
     theta_per_tick = PERIOD / H
     width = theta_per_tick * df_trace['dt']
-    r = 80 - 10 * (trace // H)
+    r = 100 - 10 * (trace // H)
     theta = (trace + 0.5 * df_trace['dt']) % H * theta_per_tick
 
     bar = go.Barpolar(r=r, base=0, theta=theta, width=width, name=f'Task {_id + 1}',
-                    marker=dict(color=COLORS[_id], line_width=1, line_color='black'), 
+                    marker=dict(color=COLORS[_id], line_width=2, line_color='black'), 
                     opacity=0.8)
 
     return bar
@@ -56,11 +33,42 @@ def plot_polar(tasks, df_traces, size=800):
 
     H = compute_H(tasks)
     ticks = np.arange(H)
-    for i, task in enumerate(tasks):
-        scatter_releases = plot_task_events(i, task, H)
-        fig_polar.add_trace(scatter_releases)
+    theta_per_tick = PERIOD / H
 
-        scatter_deadlines = plot_task_events(i, task, H, for_deadlines=True)
+    def plot_task_events(i, task, for_deadlines=False):
+        symbol = 'star-diamond'
+        r = 100
+        
+        if for_deadlines:
+            symbol = 'circle'
+            r = 100
+
+        ticks = get_ticks(task, H, for_deadlines=for_deadlines)
+        r = [r] * ticks.size
+        theta = ticks * theta_per_tick
+        scatter = go.Scatterpolar(r=r, theta=theta, mode='markers', showlegend=False,
+                                marker=dict(color=COLORS[i], symbol=symbol, size=20) )
+        return scatter
+
+    def plot_events(i, task):
+        arrow_len = size / 2.25
+        ticks = get_ticks(task, H)
+        theta = ticks * theta_per_tick * (2 * np.pi / 360.0)
+
+        axs = arrow_len * np.cos(theta)
+        ays = arrow_len * np.sin(theta)
+        for ax, ay in zip(axs, ays):
+            fig_polar.add_annotation(x=0.5, y=0.5, 
+                                    ax=ax, ay=ay,
+                                    arrowside='start', arrowcolor=COLORS[i],
+                                    arrowhead=2, arrowwidth=2)
+
+    for i, task in enumerate(tasks):
+        # scatter_releases = plot_task_events(i, task)
+        # fig_polar.add_trace(scatter_releases)
+        plot_events(i, task)
+
+        scatter_deadlines = plot_task_events(i, task, for_deadlines=True)
         fig_polar.add_trace(scatter_deadlines)
 
         bar = plot_trace(i, df_traces, H)
@@ -70,17 +78,6 @@ def plot_polar(tasks, df_traces, size=800):
     bar = plot_trace(-1, df_traces, H)
     bar.showlegend = False
     fig_polar.add_trace(bar)
-
-    arrow_len = size / 3
-    fig_polar.add_annotation(x=1.1, y=0.5, 
-                            ax=-arrow_len, ay=0.5,
-                            # axref='x domain', ayref='y domain', 
-                            # xref='x domain', yref='y domain', 
-                            showarrow=True, arrowhead=2, arrowwidth=2)
-
-    # fig_polar.add_annotation(x=10, y=(20 + 0.75), ax=10, ay=(20 - 0.1), 
-    #                         axref='x', ayref='y',
-    #                         showarrow=True, arrowhead=2, arrowwidth=2, arrowcolor=COLORS[i])
 
     fig_polar.update_layout(template=None, autosize=False, width=size, height=size,
                             polar=dict(angularaxis=dict(ticks='outside',
