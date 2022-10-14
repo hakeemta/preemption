@@ -54,12 +54,18 @@ def plot_polar(tasks, df_traces, size=800, output_dir=None):
     def plot_events_releases(i, task):
         arrow_len = size / 2.25
         ticks = get_ticks(task, H)
+
         theta = ticks * theta_per_tick * (2 * np.pi / 360.0)
+
+        print(ticks, H, theta_per_tick)
 
         axs = arrow_len * np.cos(theta)
         ays = arrow_len * np.sin(theta)
+
+        print(axs, ays)
+
         for ax, ay in zip(axs, ays):
-            fig_polar.add_annotation(x=0.5, y=0.5, ax=ax, ay=ay,
+            fig_polar.add_annotation(x=0.5, y=0.5, ax=ax, ay=-ay,
                                     arrowside='start', arrowcolor=COLORS[i],
                                     arrowhead=2, arrowwidth=2)
 
@@ -75,15 +81,15 @@ def plot_polar(tasks, df_traces, size=800, output_dir=None):
                                                         tickmode='array', tickvals=ticks * (360 / H)),
                                         radialaxis = dict(range=[0, 100], showticklabels=False, ticks='') ) )
 
-    for t in range(df_traces.shape[0]):
-        df_trace = df_traces.iloc[t:t+1]
+    # for t in range(df_traces.shape[0]):
+    #     df_trace = df_traces.iloc[t:t+1]
         
-        bar = plot_trace(df_trace, H)
-        fig_polar.add_trace(bar)
+    #     bar = plot_trace(df_trace, H)
+    #     fig_polar.add_trace(bar)
 
-        if output_dir is not None:
-            pio.write_image(fig_polar, f'{output_dir}/{t:03d}.png', 
-                            width=size, height=size, scale=1)
+    #     if output_dir is not None:
+    #         pio.write_image(fig_polar, f'{output_dir}/{t:03d}.png', 
+    #                         width=size, height=size, scale=1)
 
     # fig_polar.add_shape(type="path",
     #                     path="M 0.8,1 Q 1.0,1.0 0.9,0.9",
