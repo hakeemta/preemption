@@ -4,6 +4,7 @@ import pandas as pd
 
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 
 from utils import *
 
@@ -24,7 +25,7 @@ def plot_trace(df_trace, H):
 
     theta_per_tick = PERIOD / H
     width = theta_per_tick * df_trace['dt']
-    r = 100 - 10 * (trace // H)
+    r = 100 - 20 * (trace // H)
     theta = (trace + 0.5 * df_trace['dt']) % H * theta_per_tick
 
     bar = go.Barpolar(r=r, base=0, theta=theta, width=width,
@@ -34,12 +35,13 @@ def plot_trace(df_trace, H):
     return bar
 
 
-def plot_polar(tasks, df_traces, size=800):
-    fig_polar = go.Figure()
-
+import copy
+def plot_polar(tasks, df_traces, size=800, output_dir=None):
     H = compute_H(tasks)
     ticks = np.arange(H)
     theta_per_tick = PERIOD / H
+
+    fig_polar = go.Figure()
 
     def plot_events_deadlines(i, task):
         ticks = get_ticks(task, H, for_deadlines=True)
@@ -67,17 +69,25 @@ def plot_polar(tasks, df_traces, size=800):
         scatter_deadlines = plot_events_deadlines(i, task)
         fig_polar.add_trace(scatter_deadlines)
 
+    fig_polar.update_layout(template=None, autosize=False, width=size, height=size,
+                            polar=dict(angularaxis=dict(ticks='', ticktext=ticks,
+                                                        # type='category', period=H,
+                                                        tickmode='array', tickvals=ticks * (360 / H)),
+                                        radialaxis = dict(range=[0, 100], showticklabels=False, ticks='') ) )
+
     for t in range(df_traces.shape[0]):
         df_trace = df_traces.iloc[t:t+1]
         
         bar = plot_trace(df_trace, H)
         fig_polar.add_trace(bar)
 
-    fig_polar.update_layout(template=None, autosize=False, width=size, height=size,
-                            polar=dict(angularaxis=dict(ticks='', ticktext=ticks,
-                                                        # type='category', period=H,
-                                                        tickmode='array', tickvals=ticks * (360 / H)),
-                                        radialaxis = dict(range=[0, 100], showticklabels=False, ticks='') ) )
+        if output_dir is not None:
+            pio.write_image(fig_polar, f'{output_dir}/{t:03d}.png', 
+                            width=size, height=size, scale=1)
+
+    # fig_polar.add_shape(type="path",
+    #                     path="M 0.8,1 Q 1.0,1.0 0.9,0.9",
+    #                     line_color="RoyalBlue",)
 
     fig_polar.show()
 
@@ -96,9 +106,9 @@ def process_traces(traces):
 
 
 def plot_gantt(tasks, df_traces, fig_size=None):
-    df_traces = df_traces[df_traces['id'] != 0]
+    df_traces = df_traces.loc[df_traces['id'] != 0].copy()
     df_traces.loc[ df_traces['id'] < 0, 'id'] = 0
-    df_traces['id'] = df_traces[['id']].astype(str)
+    df_traces.loc[:, ('id')] = df_traces['id'].astype(str)
 
     fig_gantt = px.timeline(df_traces, x_start='start', x_end='end', y='task', 
                         color='id', color_discrete_sequence=COLORS, opacity=0.8)
