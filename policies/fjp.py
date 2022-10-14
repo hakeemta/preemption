@@ -4,9 +4,9 @@ def FJP(priorities):
     def choose(tasks, atomic=False):
         _tasks = [(i, t) for i, t in enumerate(tasks)]
 
-        if atomic:
+        if not atomic:
             for i, t in _tasks:
-                if t.status == Status.RESUMING:
+                if t.resuming():
                     return i
 
         _priorities = [(i, priorities[i]) for i, t in _tasks 

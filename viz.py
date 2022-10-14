@@ -13,13 +13,13 @@ PERIOD = 360
   
 
 def plot_trace(df_trace, H):
-    _id = int(df_trace['id'].values[0])
+    _id = df_trace['id'].values[0]
     if _id == 0:
         color = 'white'
     elif _id < 0:
         color = COLORS[-1]
     else:
-        color = COLORS[_id]
+        color = COLORS[_id - 1]
 
     trace = df_trace.start
 
@@ -35,7 +35,6 @@ def plot_trace(df_trace, H):
     return bar
 
 
-import copy
 def plot_polar(tasks, df_traces, size=800, output_dir=None):
     H = compute_H(tasks)
     ticks = np.arange(H)
@@ -56,13 +55,8 @@ def plot_polar(tasks, df_traces, size=800, output_dir=None):
         ticks = get_ticks(task, H)
 
         theta = ticks * theta_per_tick * (2 * np.pi / 360.0)
-
-        print(ticks, H, theta_per_tick)
-
         axs = arrow_len * np.cos(theta)
         ays = arrow_len * np.sin(theta)
-
-        print(axs, ays)
 
         for ax, ay in zip(axs, ays):
             fig_polar.add_annotation(x=0.5, y=0.5, ax=ax, ay=-ay,
@@ -81,19 +75,15 @@ def plot_polar(tasks, df_traces, size=800, output_dir=None):
                                                         tickmode='array', tickvals=ticks * (360 / H)),
                                         radialaxis = dict(range=[0, 100], showticklabels=False, ticks='') ) )
 
-    # for t in range(df_traces.shape[0]):
-    #     df_trace = df_traces.iloc[t:t+1]
+    for t in range(df_traces.shape[0]):
+        df_trace = df_traces.iloc[t:t+1]
         
-    #     bar = plot_trace(df_trace, H)
-    #     fig_polar.add_trace(bar)
+        bar = plot_trace(df_trace, H)
+        fig_polar.add_trace(bar)
 
-    #     if output_dir is not None:
-    #         pio.write_image(fig_polar, f'{output_dir}/{t:03d}.png', 
-    #                         width=size, height=size, scale=1)
-
-    # fig_polar.add_shape(type="path",
-    #                     path="M 0.8,1 Q 1.0,1.0 0.9,0.9",
-    #                     line_color="RoyalBlue",)
+        if output_dir is not None:
+            pio.write_image(fig_polar, f'{output_dir}/{t:03d}.png', 
+                            width=size, height=size, scale=1)
 
     fig_polar.show()
 
@@ -111,7 +101,7 @@ def process_traces(traces):
     return df_traces
 
 
-def plot_gantt(tasks, df_traces, fig_size=None):
+def plot_gantt(tasks, df_traces, output_filename=None):
     df_traces = df_traces.loc[df_traces['id'] != 0].copy()
     df_traces.loc[ df_traces['id'] < 0, 'id'] = 0
     df_traces.loc[:, ('id')] = df_traces['id'].astype(str)
@@ -120,7 +110,8 @@ def plot_gantt(tasks, df_traces, fig_size=None):
                         color='id', color_discrete_sequence=COLORS, opacity=0.8)
     fig_gantt.update_traces(marker=dict(line_color='black', line_width=1.0))
         
-    y_offset = -0.25
+    width = 0.25
+    y_offset = -width/2.0
     n = len(tasks)
     def plot_events_gantt(i, ticks, for_deadlines=False):
         y = n - (i + 1) + y_offset
@@ -130,7 +121,7 @@ def plot_gantt(tasks, df_traces, fig_size=None):
                                     xref='x', yref='y', 
                                     line_color=COLORS[i], fillcolor=COLORS[i])
             else:
-                fig_gantt.add_annotation(x=t, y=(y + 0.75), ax=t, ay=(y - 0.1), 
+                fig_gantt.add_annotation(x=t, y=(y + width * 1.5), ax=t, ay=(y - 0.1), 
                                         axref='x', ayref='y',
                                         showarrow=True, arrowhead=2, arrowwidth=2, arrowcolor=COLORS[i])
 
@@ -144,7 +135,7 @@ def plot_gantt(tasks, df_traces, fig_size=None):
         plot_events_gantt(i, ticks, for_deadlines)
 
     for data in fig_gantt.data:
-        data.width = 0.5
+        data.width = width
         filtered = df_traces['id'] == data.name
 
         data.base = df_traces[filtered]['start'].tolist()
@@ -167,9 +158,13 @@ def plot_gantt(tasks, df_traces, fig_size=None):
         plot_task_events_gantt(i, tasks[i], H, size=size)
         plot_task_events_gantt(i, tasks[i], H, for_deadlines=True, size=size)
 
-    fig_gantt.update_layout(width=fig_size, height=fig_size)
+    # fig_gantt.update_layout(width=fig_size, height=fig_size)
     fig_gantt.update_xaxes(type='linear')
     fig_gantt.update_yaxes(type='category', categoryorder='category descending')
+    
+    if output_filename is not None:
+        pio.write_image(fig_gantt, output_filename, scale=1)
+    
     fig_gantt.show()
 
 

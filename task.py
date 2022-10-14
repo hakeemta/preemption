@@ -28,8 +28,10 @@ class Task:
         return self.U
 
     def reset(self, start: bool = True) -> None:
-        self.status = Status.IDLE
-        self.At = 0
+        if self.status != Status.RESUMING:
+            self.status = Status.IDLE
+            self.At = 0
+        
         self.update()
 
         if start:
@@ -50,6 +52,9 @@ class Task:
             self.Ct = self.parameters.C
             self.Dt = self.parameters.D
 
+    def resuming(self):
+        return self.status == Status.RESUMING and self.At > 0
+
     def step(self, selected: bool = False, delta: int = 1) -> None:
         if not selected:
             if self.status in [Status.RUNNING, Status.RESUMING]:
@@ -58,6 +63,9 @@ class Task:
         elif self.At > 0:
             self.status = Status.RESUMING
             self.At -= 1
+
+            # if self.At == 0:
+            #     self.status = Status.IDLE
         else:
             if (not self.is_ready()) or (delta > self.Ct):
                 raise Exception('Task execution overrun!')
